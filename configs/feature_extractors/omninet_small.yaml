@@ -1,0 +1,5 @@
+_target_: tridet.modeling.backbone.omni_scripts.backbone_with_fpn.build_feature_extractor_all_fuse
+
+return_list: True
+width_mult: 1.0
+depth_mult: 1.0

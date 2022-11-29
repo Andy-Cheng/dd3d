@@ -1,0 +1,16 @@
+_target_: tridet.modeling.dd3d.depth.PacknetDepthHead
+_partial_: True   # must provide 'input_shape
+
+net:
+  _target_: tridet.layers.ConvBnFpnLayers
+  _partial_: True   # must provide 'input_shape'.
+
+  num_layers: 4
+  norm_kwargs:
+  kernel_size: 3
+  activation: 'gelu'
+  groups: 1
+
+min_depth: 1.0
+max_depth: 80.0
+scale_depth_by_focal_length: 900.0

@@ -110,3 +110,17 @@ def unproject_points2d(points2d, inv_K, scale=1.0):
     unprojected = unprojected.view(siz)
 
     return unprojected * scale
+
+
+def get_pixel_sizes_perspective_cams(cams):
+    """Get physical pixel size of pinhole cameras.
+
+    ((1 / fx) ** 2 + (1 / fy) ** 2)).sqrt()
+
+    Parameters
+    ----------
+    cams: PerspectiveCameras
+        [description]
+    """
+    inv_intrinsics = cams.get_projection_transform().inverse().get_matrix()
+    return inv_intrinsics.diagonal(dim1=1, dim2=2).norm(dim=1)

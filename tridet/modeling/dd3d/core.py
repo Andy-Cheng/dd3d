@@ -13,13 +13,19 @@ from tridet.modeling.dd3d.prepare_targets import DD3DTargetPreparer
 from tridet.modeling.feature_extractor import build_feature_extractor
 from tridet.structures.image_list import ImageList
 from tridet.utils.tensor2d import compute_features_locations as compute_locations_per_level
+from tridet.modeling.backbone.omni_scripts.backbone_with_fpn import build_feature_extractor_all_fuse
 
 
 @META_ARCH_REGISTRY.register()
 class DD3D(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        self.backbone = build_feature_extractor(cfg)
+        if "backbone_with_fpn" in cfg.MODEL: 
+            self.backbone = build_feature_extractor_all_fuse(
+                width_mult=cfg.MODEL.width_mult, depth_mult=cfg.MODEL.depth_mult,
+            )
+        else:
+            self.backbone = build_feature_extractor(cfg)
 
         backbone_output_shape = self.backbone.output_shape()
         self.in_features = cfg.DD3D.IN_FEATURES or list(backbone_output_shape.keys())

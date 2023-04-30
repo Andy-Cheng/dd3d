@@ -1,0 +1,60 @@
+# @package _global_
+defaults:
+  - override /meta_arch@_global_: dd3d_depth
+  - override /train_datasets@DATASETS.TRAIN: kitti_depth # TODO: change to kitti depth
+  - override /test_datasets@DATASETS.TEST: kitti_depth # TODO: change to kitti depth
+  - override /feature_extractors@FE: dla34_fpn
+
+MODEL:
+  CKPT:
+
+FE:
+  BACKBONE:
+    NORM: FrozenBN
+  FPN:
+    NORM: FrozenBN
+  OUT_FEATURES: ${.FPN.OUT_FEATURES}
+
+DD3D:
+  FCOS2D:
+    NORM: BN
+    INFERENCE:
+      NMS_THRESH: 0.75
+
+  FCOS3D:
+    NORM: FrozenBN
+    DEPTH_HEAD:
+      LOSS_WEIGHT: 1.0
+      LOSS_TYPE: L1
+
+INPUT:
+  RESIZE:
+    # KITTI images are (370, 1224)
+    MIN_SIZE_TRAIN: [288, 304, 320, 336, 352, 368, 384, 400, 416, 448, 480, 512, 544, 576]
+    MAX_SIZE_TRAIN: 10000
+    MIN_SIZE_TEST: 384
+    MAX_SIZE_TEST: 100000
+
+SOLVER:
+  IMS_PER_BATCH: 8 # need at least 128 GPU mem (with fp16).
+  BASE_LR: 0.002
+  MAX_ITER: 25000
+  STEPS: [21500, 24000]
+  WARMUP_ITERS: 2000
+  MIXED_PRECISION_ENABLED: True
+  CHECKPOINT_PERIOD: 2000
+
+TEST:
+  IMS_PER_BATCH: 80
+  EVAL_PERIOD: 0
+  AUG:
+    ENABLED: False
+    MIN_SIZES: [320, 384, 448, 512, 576]
+    MAX_SIZE: 100000
+    FLIP: True
+
+DATALOADER:
+  TRAIN:
+    NUM_WORKERS: 8
+    SAMPLER: RepeatFactorTrainingSampler
+    REPEAT_THRESHOLD: 0.4

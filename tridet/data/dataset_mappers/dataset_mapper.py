@@ -15,6 +15,8 @@ from tridet.data.augmentations import build_augmentation
 from tridet.data.transform_utils import annotations_to_instances, transform_instance_annotations
 from tridet.structures.pose import Pose
 from tridet.utils.tasks import TaskManager
+from PIL import Image
+
 
 LOG = logging.getLogger(__name__)
 
@@ -105,6 +107,7 @@ class DefaultDatasetMapper:
         Returns:
             dict: a format that builtin models in detectron2 accept
         """
+        # TODO: add kitti depth gt
         dataset_dict = copy.deepcopy(dataset_dict)  # it will be modified by code below
         # USER: Write your own image loading if it's not from a file
         image = d2_utils.read_image(dataset_dict["file_name"], format=self.image_format)
@@ -139,6 +142,12 @@ class DefaultDatasetMapper:
 
         if "depth_file_name" in dataset_dict:
             depth_gt = np.load(dataset_dict.pop("depth_file_name"))['data']
+            depth_gt = transforms.apply_depth(depth_gt)
+            dataset_dict["depth"] = torch.as_tensor(depth_gt)
+
+        if "depth_image_name" in dataset_dict:
+            depth_gt = Image.open(dataset_dict["depth_image_name"])
+            depth_gt = np.array(depth_gt).astype(np.float32) / 256
             depth_gt = transforms.apply_depth(depth_gt)
             dataset_dict["depth"] = torch.as_tensor(depth_gt)
 

@@ -1,7 +1,7 @@
 # @package _global_
 defaults:
   - /evaluators/kitti_3d@EVALUATORS.KITTI3D
-  - override /meta_arch: dd3d
+  - override /meta_arch@_global_: dd3d
   - override /train_datasets@DATASETS.TRAIN: kitti_3d
   - override /test_datasets@DATASETS.TEST: kitti_3d
   - override /feature_extractors@FE: dla34_fpn
@@ -35,7 +35,7 @@ INPUT:
     MAX_SIZE_TEST: 100000
 
 SOLVER:
-  IMS_PER_BATCH: 64 # need at least 128 GPU mem (with fp16).
+  IMS_PER_BATCH: 8 # need at least 128 GPU mem (with fp16).
   BASE_LR: 0.002
   MAX_ITER: 25000
   STEPS: [21500, 24000]

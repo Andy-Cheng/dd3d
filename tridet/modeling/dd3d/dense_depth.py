@@ -104,13 +104,12 @@ class DD3DDenseDepthHead(nn.Module):
 class DD3DDenseDepth(nn.Module):
     def __init__(self, cfg):
         super().__init__()
-        self.in_features = cfg.DD3D.IN_FEATURES
-        self.feature_locations_offset = cfg.DD3D.FEATURE_LOCATIONS_OFFSET
-
         self.backbone = build_feature_extractor(cfg)
         backbone_output_shape = self.backbone.output_shape()
+        self.in_features = cfg.DD3D.IN_FEATURES or list(backbone_output_shape.keys())
         backbone_output_shape = [backbone_output_shape[f] for f in self.in_features]
 
+        self.feature_locations_offset = cfg.DD3D.FEATURE_LOCATIONS_OFFSET
         self.fcos3d_head = DD3DDenseDepthHead(cfg, backbone_output_shape)
         self.depth_loss = build_dense_depth_loss(cfg)
 
@@ -153,7 +152,7 @@ class DD3DDenseDepth(nn.Module):
         # Upsample.
         dense_depth = [
             aligned_bilinear(x, factor=stride, offset=self.feature_locations_offset).squeeze(1)
-            for x, stride in zip(dense_depth, self.in_strides)
+            for x, stride in zip(dense_depth, self.fcos3d_head.in_strides)
         ]
 
         if self.scale_depth_by_focal_lengths:

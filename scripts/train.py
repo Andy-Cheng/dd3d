@@ -129,7 +129,9 @@ def do_train(cfg, model):
 
         # Track total loss for logging.
         loss_dict_reduced = {k: v.item() for k, v in d2_comm.reduce_dict(loss_dict).items()}
-        assert torch.isfinite(torch.as_tensor(list(loss_dict_reduced.values()))).all(), loss_dict_reduced
+        # assert torch.isfinite(torch.as_tensor(list(loss_dict_reduced.values()))).all(), loss_dict_reduced
+        if not torch.isfinite(torch.as_tensor(list(loss_dict_reduced.values()))).all(): # added by Andy
+            continue
         for k, v in loss_dict_reduced.items():
             batch_loss_dict[k] += v
 

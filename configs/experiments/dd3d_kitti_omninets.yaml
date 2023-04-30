@@ -1,7 +1,7 @@
 # @package _global_
 defaults:
   - /evaluators/kitti_3d@EVALUATORS.KITTI3D
-  - override /meta_arch: dd3d
+  - override /meta_arch@_global_: dd3d
   - override /train_datasets@DATASETS.TRAIN: kitti_3d
   - override /test_datasets@DATASETS.TEST: kitti_3d
   - override /feature_extractors@FE: dla34_fpn

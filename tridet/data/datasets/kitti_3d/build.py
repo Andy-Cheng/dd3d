@@ -43,7 +43,7 @@ COLORMAP = OrderedDict({
 
 MV3D_SPLIT_KITTI_3D_REMAP = {
     "train": "training",
-    "val": "val",
+    "val": "training",
     "test": "testing",
     "overfit": "training",
     "trainval": "training",

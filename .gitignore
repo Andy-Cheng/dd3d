@@ -32,3 +32,5 @@ dist/
 *.swo
 *.swp
 *~
+
+dataset_root/

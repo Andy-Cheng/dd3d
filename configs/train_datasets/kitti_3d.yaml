@@ -1,7 +1,7 @@
 defaults:
   - base_train_dataset
 
-NAME: kitti_3d_train
+NAME: kitti_3d_val
 
 CANONICAL_BOX3D_SIZES: [
     # (width, length, height)

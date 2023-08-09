@@ -20,7 +20,7 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
-                "+experiments=dd3d_kitti_dla34"
+                "+experiments=dd3d_kitti_v99"
             ]
         },
         {

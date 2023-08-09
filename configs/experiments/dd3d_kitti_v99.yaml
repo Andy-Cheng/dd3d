@@ -1,14 +1,14 @@
 # @package _global_
 defaults:
   - /evaluators/kitti_3d@EVALUATORS.KITTI3D
-  - override /meta_arch: dd3d
+  - override /meta_arch@_global_: dd3d
   - override /train_datasets@DATASETS.TRAIN: kitti_3d
   - override /test_datasets@DATASETS.TEST: kitti_3d
   - override /feature_extractors@FE: v2_99_fpn
 
 MODEL:
   # from-coco, IODA-pretrained.
-  CKPT: https://tri-ml-public.s3.amazonaws.com/github/dd3d/pretrained/depth_pretrained_v99-3jlw0p36-20210423_010520-model_final-remapped.pth
+  CKPT: /home/andy/ipl/dd3d/dd3d_v99_15M_depth_kitti_3dobj.pth
 
 FE:
   BACKBONE:
@@ -44,10 +44,10 @@ SOLVER:
   CHECKPOINT_PERIOD: 2000
 
 TEST:
-  IMS_PER_BATCH: 80
+  IMS_PER_BATCH: 16
   EVAL_PERIOD: 2000
   AUG:
-    ENABLED: True
+    ENABLED: False
     MIN_SIZES: [320, 384, 448, 512, 576]
     MAX_SIZE: 100000
     FLIP: True
@@ -57,6 +57,9 @@ DATALOADER:
     NUM_WORKERS: 12
     SAMPLER: RepeatFactorTrainingSampler
     REPEAT_THRESHOLD: 0.4
+
+
+EVAL_ONLY: True
 
 WANDB:
   TAGS: [kitti-val, v2-99, bn]

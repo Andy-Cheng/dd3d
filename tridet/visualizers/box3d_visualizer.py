@@ -339,7 +339,7 @@ class Box3DPredictionVisualizer():
 
         # By default, ["forward" of body] == ["right" of BEV image].
         # Change it to ["up" of BEV image] by rotating.
-        viz_image = cv2.rotate(viz_image, cv2.cv2.ROTATE_90_COUNTERCLOCKWISE)
+        viz_image = cv2.rotate(viz_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
         # Crop the BEV image to show only frustum.
         viz_image = bev_frustum_crop(viz_image)
 
@@ -382,7 +382,7 @@ class Box3DDataloaderVisualizer():
         )
         # By default, ["forward" of body] == ["right" of BEV image].
         # Change it to ["up" of BEV image] by rotating.
-        viz_image = cv2.rotate(viz_image, cv2.cv2.ROTATE_90_COUNTERCLOCKWISE)
+        viz_image = cv2.rotate(viz_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
         # Crop the BEV image to show only frustum.
         viz_image = bev_frustum_crop(viz_image)
 

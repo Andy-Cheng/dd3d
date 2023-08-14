@@ -33,6 +33,8 @@ from tridet.utils.train import get_inference_output_dir, print_test_results
 from tridet.utils.visualization import mosaic, save_vis
 from tridet.utils.wandb import flatten_dict, log_nested_dict
 from tridet.visualizers import get_dataloader_visualizer, get_predictions_visualizer
+from torch.utils.tensorboard import SummaryWriter
+
 
 LOG = logging.getLogger('tridet')
 
@@ -79,6 +81,7 @@ def main(cfg):
 
 
 def do_train(cfg, model):
+    sm_writer = SummaryWriter(os.getcwd()) # hydra automatically switches cwd to outputs/day/time
     model.train()
     optimizer = build_optimizer(cfg, model)
     scheduler = build_lr_scheduler(cfg, optimizer)
@@ -98,7 +101,7 @@ def do_train(cfg, model):
 
     if cfg.EVAL_ON_START:
         do_test(cfg, model)
-        comm.synchronize()
+        d2_comm.synchronize()
 
     # In mixed-precision training, gradients are scaled up to keep them from being vanished due to half-precision.
     # They're scaled down again before optimizers use them to compute updates.
@@ -150,6 +153,9 @@ def do_train(cfg, model):
 
         losses_reduced = sum(loss for loss in batch_loss_dict.values())
         storage.put_scalars(total_loss=losses_reduced, **batch_loss_dict)
+        for key, value in batch_loss_dict.items():
+            sm_writer.add_scalar(f'{key}/train', value, iteration)
+        sm_writer.add_scalar('Total loss/train', losses_reduced, iteration)
 
         # Reset states.
         batch_loss_dict = defaultdict(float)

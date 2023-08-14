@@ -34,3 +34,5 @@ dist/
 *~
 
 dataset_root/
+
+weights/

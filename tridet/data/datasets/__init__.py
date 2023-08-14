@@ -8,6 +8,7 @@ from detectron2.data import DatasetCatalog
 from tridet.data.datasets.kitti_3d import register_kitti_3d_datasets
 from tridet.data.datasets.nuscenes import register_nuscenes_datasets
 from tridet.data.datasets.kitti_depth import register_kitti_depth_datasets
+from tridet.data.datasets.kradar import register_kradar_datasets
 
 
 
@@ -21,6 +22,8 @@ def register_datasets(cfg):
     dataset_names.extend(register_kitti_3d_datasets(required_datasets, cfg))
     dataset_names.extend(register_nuscenes_datasets(required_datasets, cfg))
     dataset_names.extend(register_kitti_depth_datasets(required_datasets, cfg))
+    dataset_names.extend(register_kradar_datasets(required_datasets, cfg))
+    
     if cfg.ONLY_REGISTER_DATASETS:
         for name in dataset_names:
             DatasetCatalog.get(name)

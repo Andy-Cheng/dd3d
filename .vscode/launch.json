@@ -34,5 +34,16 @@
                 "+experiments=dd3d_kitti_dla34_depth"
             ]
         },
+        {
+            "name": "Kradar dla34",
+            "type": "python",
+            "program": "./scripts/train.py",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "+experiments=dd3d_dla34_kradar"
+            ]
+        },
     ]
 }

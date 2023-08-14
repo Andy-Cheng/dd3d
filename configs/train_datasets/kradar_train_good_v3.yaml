@@ -1,0 +1,16 @@
+defaults:
+  - base_train_dataset
+
+NAME: kradar_train_good_v3
+
+CANONICAL_BOX3D_SIZES: [
+    # (width, length, height)
+    [2.14, 4.54, 1.99],   # Sedan
+    [3.35, 10.17, 4.05],   # BusorTruck
+]
+
+NUM_CLASSES: 2
+
+# todo: pre compute the following for kradar
+MEAN_DEPTH_PER_LEVEL: [32.594, 15.178, 8.424, 5.004, 4.662]
+STD_DEPTH_PER_LEVEL: [14.682, 7.139, 4.345, 2.399, 2.587]

@@ -22,6 +22,6 @@ MODEL:
   # to be loaded to the model.
   CKPT: ""
 
-  BOX2D_ON: True
+  BOX2D_ON: False
   BOX3D_ON: True
   DEPTH_ON: False

@@ -1,0 +1,4 @@
+defaults:
+  - base_test_dataset
+
+NAME: unimonocam # cross_check_unlabeled_image

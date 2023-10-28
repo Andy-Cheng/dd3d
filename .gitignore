@@ -36,3 +36,6 @@ dist/
 dataset_root/
 
 weights/
+
+monodetr
+detectron2

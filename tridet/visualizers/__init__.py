@@ -1,7 +1,7 @@
 # Copyright 2021 Toyota Research Institute.  All rights reserved.
 from detectron2.data.catalog import DatasetCatalog, MetadataCatalog
 
-from tridet.visualizers.box3d_visualizer import Box3DDataloaderVisualizer, Box3DPredictionVisualizer
+from tridet.visualizers.box3d_visualizer import Box3DDataloaderVisualizer, Box3DPredictionVisualizer,  box_3d_viz, draw_boxes3d_bev, bev_frustum_crop
 from tridet.visualizers.d2_visualizer import D2DataloaderVisualizer, D2PredictionVisualizer
 
 

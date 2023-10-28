@@ -18,9 +18,121 @@ from tridet.utils.geometry import project_points3d
 from tridet.utils.visualization import change_color_brightness, draw_text, fill_color_polygon
 from tridet.visualizers.bev import BEVImage
 from tridet.visualizers.d2_visualizer import create_instances
+import random
+from PIL import ImageColor
+
 
 DARK_YELLOW = (246, 190, 0)
 BBOX3D_PREDICTION_FILE = "bbox3d_predictions.json"
+
+
+def rand_colors(num_of_objs):
+    colors = ['#' + ''.join([random.choice('0123456789ABCDEF') for j in range(6)])
+                for i in range(num_of_objs)]
+    colors = [ImageColor.getcolor(h, "RGB") for h in colors]
+    return colors
+
+def box_3d_viz(gt, pred, metadata, det3d_threshold, viz_gt=True, viz_pred=True, h=1080, w=1440, input_format='BGR', render_labels=True, render_bev=True, min_depth_center=0., viz_rand_color=False):
+    """
+
+    Parameters
+    ----------
+    x: Dict
+        One 'dataset_dict'.
+
+    s
+    -------
+    viz_images: Dict[np.array]
+        Visualizations as RGB images.
+    """
+    # Load image.
+    img = d2_utils.read_image(gt["file_name"], format=input_format)
+    img = d2_utils.convert_image_to_rgb(img, input_format)
+    # img = adjust_gamma(img, 0.5)
+    
+
+    viz_images = OrderedDict()
+
+    obj_colors_gt, obj_colors_pred = None, None
+    
+    # # GT 3D boxes
+    if viz_gt:
+        gt_boxes3d = [np.float32(ann['bbox3d']) for ann in gt['annotations']]
+        gt_class_ids = [ann['category_id'] for ann in gt['annotations']]
+        obj_colors_gt = rand_colors(len(gt_boxes3d)) if viz_rand_color else None
+        viz_image = draw_boxes3d_cam(
+            img.copy(),
+            gt_boxes3d,
+            gt_class_ids,
+            metadata.contiguous_id_to_name,
+            metadata.thing_classes,
+            metadata.thing_colors,
+            gt['intrinsics'],
+            scores=None,
+            render_labels=render_labels,
+            obj_colors=obj_colors_gt
+        )
+        viz_images['viz_gt_boxes3d_cam'] = viz_image
+        
+    # Predicted 3D boxes.
+    if viz_pred:
+        pred_instances = create_instances(pred, (h, w), det3d_threshold, metadata, score_key="score_3d") 
+        pred_boxes3d = pred_instances.pred_boxes3d
+        if min_depth_center > 0.:
+            pred_boxes3d = pred_boxes3d[pred_boxes3d[:, 6] > min_depth_center]
+        obj_colors_pred = rand_colors(len(pred_boxes3d)) if viz_rand_color else None
+        pred_class_ids = pred_instances.pred_classes
+        scores = pred_instances.scores
+        viz_image = draw_boxes3d_cam(
+            img.copy(),
+            pred_boxes3d,
+            pred_class_ids,
+            metadata.contiguous_id_to_name,
+            metadata.thing_classes,
+            metadata.thing_colors,
+            gt['intrinsics'],
+            scores=scores,
+            render_labels=render_labels,
+            obj_colors=obj_colors_pred
+        )
+        viz_images['viz_pred_boxes3d_cam'] = viz_image
+
+    # GT + Pred 3D boxes on BEV.
+    if render_bev:
+        bev_obj = None
+        if viz_gt:
+            viz_image, bev_obj = draw_boxes3d_bev(
+                GenericBoxes3D.from_vectors(gt_boxes3d),
+                intrinsics=gt['intrinsics'],
+                extrinsics=gt['extrinsics'],
+                class_ids=gt_class_ids,
+                image_width=img.shape[1],
+                metadata=None,
+                color=(0, 255, 0),
+                obj_colors=obj_colors_gt
+            )
+        if viz_pred:
+            viz_image, bev_obj = draw_boxes3d_bev(
+                GenericBoxes3D.from_vectors(pred_boxes3d.cpu().numpy()),
+                intrinsics=gt['intrinsics'],
+                extrinsics=gt['extrinsics'],
+                class_ids=pred_class_ids,
+                image_width=img.shape[1],
+                metadata=None,
+                color=(0, 0, 255),
+                bev=bev_obj,
+                obj_colors=obj_colors_pred
+
+            )
+
+        # By default, ["forward" of body] == ["right" of BEV image].
+        # Change it to ["up" of BEV image] by rotating.
+        viz_image = cv2.rotate(viz_image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        # Crop the BEV image to show only frustum.
+        viz_image = bev_frustum_crop(viz_image)
+        viz_images['viz_boxes3d_bev'] = viz_image
+
+    return viz_images
 
 
 def pretty_render_3d_box(
@@ -105,7 +217,7 @@ def pretty_render_3d_box(
     return image
 
 
-def draw_boxes3d_cam(img, boxes3d, class_ids, metadata, intrinsics=None, scores=None, render_labels=True):
+def draw_boxes3d_cam(img, boxes3d, class_ids, contiguous_id_to_name, thing_classes, thing_colors, intrinsics=None, scores=None, render_labels=True, obj_colors=None):
     """
     Parameters
     ----------
@@ -133,7 +245,7 @@ def draw_boxes3d_cam(img, boxes3d, class_ids, metadata, intrinsics=None, scores=
         assert intrinsics is not None
         K = np.float32(intrinsics).reshape(3, 3)
 
-    class_names = [metadata.contiguous_id_to_name[class_id] for class_id in range(len(metadata.thing_classes))]
+    class_names = [contiguous_id_to_name[class_id] for class_id in range(len(thing_classes))]
 
     viz_image = img.copy()
     for k, (class_id, box3d) in enumerate(zip(class_ids, boxes3d)):
@@ -141,7 +253,7 @@ def draw_boxes3d_cam(img, boxes3d, class_ids, metadata, intrinsics=None, scores=
             box3d = box3d.vectorize()[0]
         if isinstance(box3d, torch.Tensor):
             box3d = box3d.detach().cpu().numpy()
-        clr = metadata.thing_colors[class_id]
+        clr = thing_colors[class_id] if obj_colors is None else obj_colors[k]
         box3d = GenericBoxes3D.from_vectors([box3d])
         if scores is not None:
             score = scores[k]
@@ -174,21 +286,18 @@ def draw_boxes3d_bev(
     bev=None,
     point_cloud=None,
     point_cloud_extrnsics=None,
+    obj_colors=None
 ):
     if bev is None:
         bev = BEVImage(
             metric_width=160,
             metric_height=160,
             background_clr=(255, 255, 255),
+            pixels_per_meter=10.0,
+            polar_step_size_meters=10,
+            forward=(0, 0, 1),
+            left=(-1, 0, 0)
         )
-
-    if len(boxes3d) == 0:
-        return bev.data, bev
-
-    assert len(class_ids) == len(
-        boxes3d
-    ), f"Number of class IDs must be same with number of 3D boxes: {len(class_ids)}, {boxes3d}"
-
     if intrinsics is not None:
         if isinstance(intrinsics, torch.Tensor):
             K = intrinsics.detach().cpu().numpy().copy()
@@ -205,6 +314,13 @@ def draw_boxes3d_bev(
             intrinsics=K, extrinsics=extrinsics, width=image_width, line_thickness=2, color=DARK_YELLOW
         )
 
+    if len(boxes3d) == 0:
+        return bev.data, bev
+
+    assert len(class_ids) == len(
+        boxes3d
+    ), f"Number of class IDs must be same with number of 3D boxes: {len(class_ids)}, {boxes3d}"
+
     if point_cloud is not None:
         assert point_cloud_extrnsics is not None, "point-cloud extrinsics is missing."
         pc_extrinsics = Pose(wxyz=np.array(point_cloud_extrnsics[:4]), tvec=np.array(point_cloud_extrnsics[4:]))
@@ -213,14 +329,13 @@ def draw_boxes3d_bev(
     if metadata is not None:
         colors = [metadata.thing_colors[class_id] for class_id in class_ids]
     else:
-        colors = [color] * len(boxes3d)
+        colors = [color] * len(boxes3d) if obj_colors is None else obj_colors
 
     bev.render_bounding_box_3d(boxes3d=boxes3d, extrinsics=extrinsics, colors=colors, line_thickness=3)
 
     bev_vis = bev.data
 
     return bev_vis, bev
-
 
 def bev_frustum_crop(bev_vis):
     # hacky frustum cropping

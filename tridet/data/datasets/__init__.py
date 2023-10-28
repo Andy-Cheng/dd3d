@@ -9,20 +9,21 @@ from tridet.data.datasets.kitti_3d import register_kitti_3d_datasets
 from tridet.data.datasets.nuscenes import register_nuscenes_datasets
 from tridet.data.datasets.kitti_depth import register_kitti_depth_datasets
 from tridet.data.datasets.kradar import register_kradar_datasets
+from tridet.data.datasets.cruw import register_cruw_datasets
 
 
 
 def register_datasets(cfg):
-    train_dataset_name = cfg.DATASETS.TRAIN.NAME
-    test_dataset_name = cfg.DATASETS.TEST.NAME
-
-    required_datasets = [train_dataset_name, test_dataset_name]
-
+    required_datasets = []
+    if not getattr(cfg, 'NOT_REGISTER_TRAIN', False):
+        required_datasets.append(cfg.DATASETS.TRAIN.NAME)
+    required_datasets.append(cfg.DATASETS.TEST.NAME)
     dataset_names = []
     dataset_names.extend(register_kitti_3d_datasets(required_datasets, cfg))
     dataset_names.extend(register_nuscenes_datasets(required_datasets, cfg))
     dataset_names.extend(register_kitti_depth_datasets(required_datasets, cfg))
     dataset_names.extend(register_kradar_datasets(required_datasets, cfg))
+    dataset_names.extend(register_cruw_datasets(required_datasets, cfg))
     
     if cfg.ONLY_REGISTER_DATASETS:
         for name in dataset_names:

@@ -1,0 +1,81 @@
+# @package _global_
+defaults:
+  - /evaluators/kitti_3d@EVALUATORS.KITTI3D
+  - override /meta_arch@_global_: dd3d
+  - override /train_datasets@DATASETS.TRAIN: cruw_2class
+  - override /test_datasets@DATASETS.TEST: cruw_img
+  - override /feature_extractors@FE: dla34_fpn
+
+
+
+MODEL:
+  # from-coco, IODA-pretrained.
+  CKPT: /mnt/disk1/model_weights/neuralips/dd3d/tfs/dla34/day_night/model_final.pth # change
+
+
+FE:
+  BACKBONE:
+    NORM: FrozenBN
+  FPN:
+    NORM: FrozenBN
+  OUT_FEATURES: ${.FPN.OUT_FEATURES}
+
+DD3D:
+  FCOS2D:
+    NORM: BN
+    INFERENCE:
+      NMS_THRESH: 0.75
+
+  FCOS3D:
+    NORM: FrozenBN
+  
+  INFERENCE:
+    # to fuse the detection result with radar fushion, remove 2d nms and top k
+    DO_NMS: False
+    DO_BEV_NMS: True
+    BEV_NMS_IOU_THRESH: 0.0
+
+INPUT:
+  RESIZE:
+    # cruw images are (1080, 1440), (h, w)
+    MIN_SIZE_TRAIN: [800, 832, 864, 896, 928, 960, 992, 1024, 1056, 1088, 1120, 1152, 1184, 1216, 1248, 1280, 1312]
+    MAX_SIZE_TRAIN: 10000
+    MIN_SIZE_TEST: 1056
+    MAX_SIZE_TEST: 100000
+  SCALE_FOCAL: [1.0, 1.0]
+
+SOLVER:
+  IMS_PER_BATCH: 4 #64 # need at least 128 GPU mem (with fp16).
+  BASE_LR: 0.002
+  MAX_ITER: 80000
+  STEPS: [50000, 60000]
+  WARMUP_ITERS: 16000
+  MIXED_PRECISION_ENABLED: True
+  CHECKPOINT_PERIOD: 10000
+
+TEST:
+  ENABLED: True
+  IMS_PER_BATCH: 8
+  EVAL_PERIOD: 10000
+  AUG:
+    ENABLED: False
+    MIN_SIZES: [864, 960, 1056, 1184, 1280]
+    MAX_SIZE: 100000
+    FLIP: True
+
+DATALOADER:
+  TRAIN:
+    NUM_WORKERS: 6
+    SAMPLER: RepeatFactorTrainingSampler
+    REPEAT_THRESHOLD: 0.4
+
+WANDB:
+  TAGS: [cruw-train, dla34, bn]
+
+EVAL_ONLY: True
+
+VIS:
+  DATALOADER_ENABLED: False
+  PREDICTIONS_ENABLED: False
+
+NOT_REGISTER_TRAIN: True

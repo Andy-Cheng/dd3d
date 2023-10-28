@@ -1,4 +1,4 @@
 defaults:
   - base_test_dataset
 
-NAME: kradar_test_good_v3 # daytime1_val # nighttime1_val
+NAME: kradar_test_good_v3  # kradar_test_good_v3

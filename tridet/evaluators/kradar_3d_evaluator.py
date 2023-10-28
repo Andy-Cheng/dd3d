@@ -30,11 +30,7 @@ BBOX3D_PREDICTION_FILE = "bbox3d_predictions.json"
 KITTI_SUBMISSION_DIR = "kitti_3d_submission"
 
 
-# For output monodetr results
-from monodetr.lib.helpers.decode_helper import *
-
-
-class KITTI3DEvaluator(DatasetEvaluator):
+class KRadarEvaluator(DatasetEvaluator):
     def __init__(
         self,
         dataset_name,
@@ -66,99 +62,6 @@ class KITTI3DEvaluator(DatasetEvaluator):
 
         self._predictions_kitti_format = []
         self._groundtruth_kitti_format = []
-
-
-
-    def process_mono_detr(self, inputs, outputs):
-        """
-        Process the pair of inputs and outputs.
-        If they contain batches, the pairs can be consumed one-by-one using `zip`:
-
-        .. code-block:: python
-
-            for input_, output in zip(inputs, outputs):
-                # do evaluation on single input/output pair
-                ...
-
-        Args:
-            inputs (list): the inputs that's used to call the model.
-            outputs (list): the return value of `model(inputs)`
-        """
-        # hard code the bounding box decoding
-        cls_mean_size = np.array([[1.76255119    ,0.66068622   , 0.84422524   ],
-                                       [1.52563191462 ,1.62856739989, 3.88311640418],
-                                       [1.73698127    ,0.59706367   , 1.76282397   ]])
-
-        dets = extract_dets_from_outputs(outputs=outputs, K=25, topk=25)
-        dets = dets.detach().cpu().numpy()
-        info = [item['sample_id'] for item in inputs]
-        dets = decode_detections(
-            dets=dets,
-            info=info,
-            calibs=None,
-            cls_mean_size=cls_mean_size,
-            threshold=0.2)
-
-
-
-        class_names = ['Pedestrian', 'Sedan', 'Cyclist']
-
-        for input_per_image in inputs:
-            detection = dets[input_per_image['sample_id']]
-            file_name = input_per_image['file_name']
-            image_id = input_per_image['image_id']
-
-            # predictions
-            predictions_kitti = []
-            # for class_id, box3d_as_vec, score, box2d in zip(pred_classes, pred_boxes3d, scores, pred_boxes):
-            for box in detection:
-                # class_name = self._metadata.thing_classes[class_id]
-                class_name = class_names[box[0]]
-
-                cls_id, alpha, l, t, r, b, H, W, L, x, y, z , ry, score = box
-                pred = OrderedDict(
-                    category_id=int(cls_id),  # COCO instances
-                    category=class_name,
-                    bbox3d=[x, y-H/2, z, L, H, W, ry],
-                    # COCO instances uses "XYWH". Aligning with it as much as possible
-                    bbox=[int((box[2] + box[4])/2), int((box[4] - box[2])/2), int((box[3] + box[5])/2), int((box[5] - box[3])/2)], 
-                    score=float(score),
-                    file_name=file_name,
-                    image_id=image_id  # COCO instances
-                )
-                self._predictions_as_json.append(pred)
-
-                # prediction in KITTI format.
-                predictions_kitti.append([
-                    class_name, -1, -1, alpha, l, t, r, b, H, W, L, x, y, z, ry,
-                    score
-                ])
-            self._predictions_kitti_format.append(pd.DataFrame(predictions_kitti))
-
-            # groundtruths
-            gt_dataset_dict = self._dataset_dicts[file_name]
-
-            if "annotations" not in gt_dataset_dict:
-                # test set
-                continue
-
-            raw_kitti_annotations = gt_dataset_dict.get('raw_kitti_annotations', None)
-            if raw_kitti_annotations is not None:
-                self._groundtruth_kitti_format.append(raw_kitti_annotations)
-            else:
-                # Otherwise, use the same format as predictions (minus 'score').
-                groundtruth_kitti = []
-                for anno in gt_dataset_dict['annotations']:
-                    # class_name = self._metadata.thing_classes[anno['category_id']]
-                    class_name = self._class_names[anno['category_id']]
-
-                    # groundtruth in KITTI format.
-                    box2d = BoxMode.convert(anno['bbox'], from_mode=anno['bbox_mode'], to_mode=BoxMode.XYXY_ABS)
-                    box3d = GenericBoxes3D.from_vectors([anno['bbox3d']])
-                    W, L, H, x, y, z, rot_y, alpha = convert_3d_box_to_kitti(box3d)
-                    l, t, r, b = box2d
-                    groundtruth_kitti.append([class_name, -1, -1, alpha, l, t, r, b, H, W, L, x, y, z, rot_y])
-                self._groundtruth_kitti_format.append(pd.DataFrame(groundtruth_kitti))
 
     def process(self, inputs, outputs):
         """

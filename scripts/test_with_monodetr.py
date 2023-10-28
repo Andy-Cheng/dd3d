@@ -3,6 +3,8 @@
 import logging
 import os
 from collections import OrderedDict, defaultdict
+import yaml
+import sys
 
 import hydra
 import torch
@@ -35,6 +37,9 @@ from tridet.utils.wandb import flatten_dict, log_nested_dict
 from tridet.visualizers import get_dataloader_visualizer, get_predictions_visualizer
 from torch.utils.tensorboard import SummaryWriter
 
+sys.path.append("./monodetr")
+from lib.helpers.model_helper import build_model
+from lib.helpers.save_helper import load_checkpoint
 
 LOG = logging.getLogger('tridet')
 
@@ -42,17 +47,29 @@ LOG = logging.getLogger('tridet')
 @hydra.main(config_path="../configs/", config_name="defaults")
 def main(cfg):
     setup(cfg)
+    
+    # monodetr model
+    with open('/home/andy/ipl/dd3d/monodetr/configs/monodetr.yaml', 'r') as file:
+       model_cfg = yaml.safe_load(file)
+    model, _ = build_model(model_cfg['model'])
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    load_checkpoint(model=model,
+                    optimizer=None,
+                    filename=model_cfg['trainer']['pretrain_model'],
+                    map_location=device,
+                    logger=None)
+    model = model.to(device)
+    
     dataset_names = register_datasets(cfg)
     if cfg.ONLY_REGISTER_DATASETS:
         return {}, cfg
     LOG.info(f"Registered {len(dataset_names)} datasets:" + '\n\t' + '\n\t'.join(dataset_names))
 
-    model = build_model(cfg)
-
-    checkpoint_file = cfg.MODEL.CKPT
-    if checkpoint_file:
-        Checkpointer(model).load(checkpoint_file)
-
+    # model = build_model(cfg)
+    # checkpoint_file = cfg.MODEL.CKPT
+    # if checkpoint_file:
+    #     Checkpointer(model).load(checkpoint_file)
+    
     if cfg.EVAL_ONLY:
         assert cfg.TEST.ENABLED, "'eval-only' mode is not compatible with 'cfg.TEST.ENABLED = False'."
         test_results = do_test(cfg, model, is_last=True)
@@ -146,9 +163,9 @@ def do_train(cfg, model):
             # Just accumulate gradients and move on to next batch.
             continue
 
-        scheduler.step()
         scaler.step(optimizer)
         storage.put_scalar("lr", optimizer.param_groups[0]["lr"], smoothing_hint=False)
+        scheduler.step()
         scaler.update()
 
         losses_reduced = sum(loss for loss in batch_loss_dict.values())

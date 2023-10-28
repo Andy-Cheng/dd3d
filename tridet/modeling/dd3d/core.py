@@ -14,6 +14,7 @@ from tridet.modeling.feature_extractor import build_feature_extractor
 from tridet.structures.image_list import ImageList
 from tridet.utils.tensor2d import compute_features_locations as compute_locations_per_level
 from tridet.modeling.backbone.omni_scripts.backbone_with_fpn import build_feature_extractor_all_fuse
+from tridet.structures.pose import Pose
 
 
 @META_ARCH_REGISTRY.register()
@@ -145,8 +146,10 @@ class DD3D(nn.Module):
                 dummy_group_idxs = {i: [i] for i, _ in enumerate(pred_instances)}
                 if 'pose' in batched_inputs[0]:
                     poses = [x['pose'] for x in batched_inputs]
-                else:
+                elif 'extrinsics' in batched_inputs[0]:
                     poses = [x['extrinsics'] for x in batched_inputs]
+                else:
+                    poses = [Pose() for x in batched_inputs]
                 pred_instances = nuscenes_sample_aggregate(
                     pred_instances,
                     dummy_group_idxs,

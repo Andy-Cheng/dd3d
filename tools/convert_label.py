@@ -225,7 +225,8 @@ if __name__ == '__main__':
     kradar_root = '/home/andy/ipl/dd3d/dataset_root/kradar'
     calib_realtive_path = 'calib/camera/cam-front-undistort.json'
     print(f'Start to preparing files in {save_root_path}')
-    target_seq = [4, 5, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 19, 20, 21, 22, 24, 26, 32, 33, 34, 41, 42, 44, 45, 46, 54, 55]
+    target_seq = [5, 7, 9, 10, 11, 12, 13, 15, 16, 17, 19,  22, 41]
+
     distance_threshold = 80 # filter out instances larger than distance (meter)
     train_seq_frames = get_target_seq_frames(train_samples, target_seq, exclude_seq_frame_json)
     print('Start preparing train label.')

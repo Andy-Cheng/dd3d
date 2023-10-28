@@ -1,0 +1,23 @@
+defaults:
+  - base_train_dataset
+
+NAME: daytime1_train_original
+
+CANONICAL_BOX3D_SIZES: [
+    # (width, length, height)
+    [1.91, 4.49, 1.64],   # Car
+    [0.74, 0.85, 1.76],   # Pedestrian
+    # the following are copied from kitti
+    [0.56898187, 1.77149234, 1.7237099],    # Cyclist
+    [1.9134491 , 5.15499603, 2.18998422],   # Van
+    [2.61168401, 9.22692319, 3.36492722],   # Truck
+    [0.5390196 , 1.08098042, 1.28392158],   # Person_sitting
+    [2.36044838, 15.56991038,  3.5289238],  # Tram
+    [1.24489164, 2.51495357, 1.61402478],   # Misc
+]
+
+NUM_CLASSES: 2
+
+# todo: pre compute the following for cruw
+MEAN_DEPTH_PER_LEVEL: [32.594, 15.178, 8.424, 5.004, 4.662]
+STD_DEPTH_PER_LEVEL: [14.682, 7.139, 4.345, 2.399, 2.587]

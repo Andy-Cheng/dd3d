@@ -59,6 +59,7 @@ class DefaultDatasetMapper:
         task_manager,
         augmentations: List[Union[T.Augmentation, T.Transform]],
         image_format: str,
+        focal_length_scale: List[float] = [1.0, 1.0],
     ):
         """
         NOTE: 'configurable' interface is experimental.
@@ -82,6 +83,7 @@ class DefaultDatasetMapper:
         self.task_manager                     = task_manager
         self.augmentations                    = T.AugmentationList(augmentations)
         self.image_format                     = image_format
+        self.focal_length_scale               = focal_length_scale
         # yapf: enable
 
         LOG.info("Augmentations used in training: " + str(augmentations))
@@ -96,6 +98,8 @@ class DefaultDatasetMapper:
             "augmentations": augs,
             "image_format": cfg.INPUT.FORMAT,
         }
+        # if not (cfg.INPUT.SCALE_FOCAL is None):
+        #     ret["focal_length_scale"] = cfg.INPUT.SCALE_FOCAL # (fx, fy) scale
 
         return ret
 
@@ -158,6 +162,8 @@ class DefaultDatasetMapper:
                 (3, 3),
             ).astype(np.float32)
             intrinsics = transforms.apply_intrinsics(intrinsics)
+            intrinsics[0, 0] *= self.focal_length_scale[0]
+            intrinsics[1, 1] *= self.focal_length_scale[1]
             dataset_dict["intrinsics"] = torch.as_tensor(intrinsics)
             dataset_dict["inv_intrinsics"] = torch.as_tensor(np.linalg.inv(intrinsics))
 

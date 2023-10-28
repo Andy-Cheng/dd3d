@@ -9,6 +9,7 @@ defaults:
 MODEL:
   # from-coco, IODA-pretrained.
   CKPT: weights/depth_pretrained/depth_pretrained_dla34-y1urdmir-20210422_165446-model_final-remapped.pth
+  # CKPT: /home/andy/Downloads/tmp_dd3d/model_0079999.pth
 FE:
   BACKBONE:
     NORM: FrozenBN
@@ -34,17 +35,17 @@ INPUT:
     MAX_SIZE_TEST: 100000
 
 SOLVER:
-  IMS_PER_BATCH: 16 # need at least 128 GPU mem (with fp16).
+  IMS_PER_BATCH: 16
   BASE_LR: 0.002
-  MAX_ITER: 80000
-  STEPS: [50000, 60000]
-  WARMUP_ITERS: 16000
+  MAX_ITER: 100000
+  STEPS: [80000, 90000]
+  WARMUP_ITERS: 10000
   MIXED_PRECISION_ENABLED: True
   CHECKPOINT_PERIOD: 10000
 
 TEST:
   ENABLED: True # change
-  IMS_PER_BATCH: 16
+  IMS_PER_BATCH: 1
   EVAL_PERIOD: 10000
   AUG:
     ENABLED: False
@@ -63,5 +64,9 @@ EVAL_ONLY: False # change
 
 VIS:
   DATALOADER_ENABLED: False
+  PREDICTIONS_ENABLED: False
 
-EVAL_ON_START: True
+EVAL_ON_START: False
+
+WANDB:
+  ENABLED: False

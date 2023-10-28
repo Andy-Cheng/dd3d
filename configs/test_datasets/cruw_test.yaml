@@ -1,0 +1,4 @@
+defaults:
+  - base_test_dataset
+
+NAME: day_nighttime1_image

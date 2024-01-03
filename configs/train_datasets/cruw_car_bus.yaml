@@ -1,0 +1,16 @@
+defaults:
+  - base_train_dataset
+
+NAME: carbus_train
+
+CANONICAL_BOX3D_SIZES: [
+    # (width, length, height)
+    [1.94, 4.43, 1.64],   # Car
+    [3.09, 10.26, 3.44],   # BusorTruck
+]
+
+NUM_CLASSES: 2
+
+# todo: pre compute the following for cruw
+MEAN_DEPTH_PER_LEVEL: [32.594, 15.178, 8.424, 5.004, 4.662]
+STD_DEPTH_PER_LEVEL: [14.682, 7.139, 4.345, 2.399, 2.587]

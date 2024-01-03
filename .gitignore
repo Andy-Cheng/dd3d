@@ -39,3 +39,6 @@ weights/
 
 monodetr
 detectron2
+*.json
+
+tmp/

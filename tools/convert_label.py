@@ -219,13 +219,16 @@ if __name__ == '__main__':
     test_samples = '/home/andy/ipl/CenterPoint/configs/kradar/resources/split/test.txt'
     with open('/mnt/nas_kradar/kradar_dataset/bad_front.json', 'r') as json_file:
         exclude_seq_frame_json = json.load(json_file)
-    save_name = 'kradar_cam_aligned_v3.json'
+    save_name = 'kradar_cam_aligned_v3_all.json'
     save_root_path = '/home/andy/ipl/dd3d/dataset_root/kradar_label'
     is_kitti_format = False # kitti format means in object coordinate frame, x is forward (L), y is down (H), z is left (W)
     kradar_root = '/home/andy/ipl/dd3d/dataset_root/kradar'
     calib_realtive_path = 'calib/camera/cam-front-undistort.json'
     print(f'Start to preparing files in {save_root_path}')
-    target_seq = [5, 7, 9, 10, 11, 12, 13, 15, 16, 17, 19,  22, 41]
+    # target_seq = [5, 7, 9, 10, 11, 12, 13, 15, 16, 17, 19,  22, 41]
+    target_seq = list(range(1, 59))
+    for seq_to_remove in [51, 52, 57, 58]:
+        target_seq.remove(seq_to_remove)
 
     distance_threshold = 80 # filter out instances larger than distance (meter)
     train_seq_frames = get_target_seq_frames(train_samples, target_seq, exclude_seq_frame_json)

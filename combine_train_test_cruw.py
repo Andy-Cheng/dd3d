@@ -49,29 +49,29 @@ def encode_box3d_quat(quats, dims, locs):
 combine = True
 viz = False
 
-tr_LR_tvec = [2.54, -0.3, -0.7]
-saved_picke_name = 'kradar_dla34_3dnms_all_seq.pkl'
+tr_LR_tvec = [0.04, 0.2, 0.06]
+saved_picke_name = 'cruw_dla34_3dnms.pkl'
+
+tr_CL_tvec_seqs = {}
+for seq in os.listdir('/mnt/ssd3/CRUW3D/cruw_calibs'):
+    calib_path = os.path.join('/mnt/ssd3/CRUW3D/cruw_calibs', seq, 'calib', 'camera', 'left.json')
+    with open(calib_path) as f:
+        calib = json.load(f)
+    tr_CL_tvec_seqs[seq] = np.array(calib['extrinsic']).reshape(4, 4)[:3, 3]
+
+
+
 if combine:
-    with open('/home/andy/ipl/dd3d/outputs/2023-10-30/13-51-22/inference/final/kradar_test_good_v3/bbox3d_predictions.json') as f:
+    with open('outputs/2023-11-10/22-04-39/inference/final/carbus_train/bbox3d_predictions.json') as f:
         train_result = json.load(f)
-    with open('/home/andy/ipl/dd3d/outputs/2023-10-30/12-51-50/inference/final/kradar_test_good_v3/bbox3d_predictions.json') as f:
+    with open('outputs/2023-11-09/14-02-48/inference/final/carbus_test/bbox3d_predictions.json') as f:
         test_result = json.load(f)
-
     result = train_result + test_result
-
-    kradar_root = '/mnt/nas_kradar/kradar_dataset/dir_all'
-    seq_camera_2_rdr_id = defaultdict(dict)
-    for seq in os.listdir(kradar_root):
-        label_files = os.listdir(os.path.join(kradar_root, seq, 'info_label'))
-        for label_file in label_files:
-            rdr_id, camera_id = label_file.split('_')
-            camera_id = camera_id.split('.')[0]
-            seq_camera_2_rdr_id[seq][camera_id] = rdr_id
-
     result_by_seq = {}
-
     for box in result:
-        seq, camera_frame = box.pop('image_id').split('_')
+        seq_camera_frame = box.pop('image_id').split('_')
+        camera_frame = seq_camera_frame[-1]
+        seq = '_'.join(seq_camera_frame[:-1])
         del box['file_name']
         if seq not in result_by_seq:
             result_by_seq[seq] = defaultdict(list)
@@ -81,18 +81,16 @@ if combine:
         x, y, z = bbox3d[4:7]
         W, L, H = bbox3d[7:]
         r = Rotation.from_quat([*quat[1:], quat[0]]).as_euler('yxz')[0].item()
-        z += 0.7
-        x -= 0.1
+        x -= tr_CL_tvec_seqs[seq][0]
+        y -= tr_CL_tvec_seqs[seq][1]
+        z -= tr_CL_tvec_seqs[seq][2]
         new_x, new_y, new_z = z-tr_LR_tvec[0], -x-tr_LR_tvec[1], -y-tr_LR_tvec[2]
-        if new_y < -30 or new_y > 30:
-            print(new_y)
-        if new_x < 0 or new_x > 80 or new_y < -30 or new_y > 30 or new_z < -2 or new_z > 7.6:
+        if new_x < 0 or new_x > 25 or new_y < -10 or new_y > 10 or new_z < -5 or new_z > 10:
             continue
         box['box3d'] = [new_x, new_y, new_z, L, W, H, float(r+np.pi/2)]
         box['quat'] = quat
         box['box3d_cam'] = bbox3d
-        result_by_seq[seq][f'{camera_frame}/{seq_camera_2_rdr_id[seq][camera_frame]}'].append(box)
-
+        result_by_seq[seq][f'{camera_frame}/{camera_frame}'].append(box)
 # def nms_filter_cruw(pred_path, prediction_format):
     iou_threshold = 0.0
     for seq_name, frames in result_by_seq.items():
@@ -106,7 +104,7 @@ if combine:
             objects = torch.tensor(objects)
             pick_indexes = NMS3D_cruw(objects, iou_threshold).flatten().to(torch.int).tolist()
             result_by_seq[seq_name][frame_name] = [objs[pick_index] for pick_index in pick_indexes]
-    save_file_name = f'dd3d_dla34_3dnms_{iou_threshold}_all.json'
+    save_file_name = f'dd3d_dla34_3dnms_{iou_threshold}_cruw.json'
     save_path = os.path.join(save_file_name)
     with open(save_path, 'w') as out_file:
         json.dump(result_by_seq, out_file, indent=2)

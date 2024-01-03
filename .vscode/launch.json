@@ -80,7 +80,7 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
-                "+experiments=cruw_1_v2",
+                "+experiments=cruw_carbus",
                 "EVAL_ONLY=True"
 
             ]

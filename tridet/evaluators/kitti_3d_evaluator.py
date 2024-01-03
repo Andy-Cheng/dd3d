@@ -31,7 +31,7 @@ KITTI_SUBMISSION_DIR = "kitti_3d_submission"
 
 
 # For output monodetr results
-from monodetr.lib.helpers.decode_helper import *
+# from monodetr.lib.helpers.decode_helper import *
 
 
 class KITTI3DEvaluator(DatasetEvaluator):

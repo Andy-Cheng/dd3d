@@ -4,6 +4,7 @@ import logging
 import os
 from collections import OrderedDict
 from multiprocessing import Pool, cpu_count
+from tkinter import X
 
 import cv2
 import numpy as np
@@ -29,14 +30,14 @@ from math import ceil
 
 LOG = logging.getLogger(__name__)
 
-# VALID_CLASS_NAMES = ("Car", "Pedestrian")
-VALID_CLASS_NAMES = ("Car", "Pedestrian", "Cyclist", "Van", "Truck")
+VALID_CLASS_NAMES = ("Car", "BusorTruck")
+# VALID_CLASS_NAMES = ("Car", "Pedestrian", "Cyclist", "Van", "Truck")
 
 
 COLORS = [float_to_uint8_color(clr) for clr in sns.color_palette("bright", n_colors=8)]
 COLORMAP = OrderedDict({
     "Car": COLORS[2],  # green
-    "Pedestrian": COLORS[1],  # orange
+    "BusorTruck": COLORS[1],  # orange
     "Cyclist": COLORS[0],  # blue
     "Van": COLORS[6],  # pink
     "Truck": COLORS[5],  # brown
@@ -68,11 +69,11 @@ class CRUWDataset(Dataset):
     def __getitem__(self, idx):
         datum = {}
         sample = self.samples[idx]
-        datum['intrinsics'] = self._read_intrinsics(sample['seq_name'])
-        datum['file_name'] = os.path.join(self.root_dir, sample['seq_name'], 'camera', self._image_dir, '{}.png'.format(sample['frame_name']))
+        datum['intrinsics'] = self._read_intrinsics(sample['seq'])
+        datum['file_name'] = os.path.join(self.root_dir, sample['seq'], self._image_dir, '{}.png'.format(sample['frame']))
         I = Image.open(datum['file_name'])
         datum['width'], datum['height'] = I.width, I.height
-        datum['image_id'] = '{}_{}'.format(sample['seq_name'], sample['frame_name'])
+        datum['image_id'] = '{}_{}'.format(sample['seq'], sample['frame'])
         datum['sample_id'] = datum['image_id']
         datum['annotations'] = self.get_annotations(sample, datum['sample_id'], datum['width'], datum['height'])
         extrinsics = Pose() # let left camera be the reference frame
@@ -94,7 +95,7 @@ class CRUWDataset(Dataset):
             annotation = OrderedDict(category_id=self._name_to_id[class_name], instance_id=f'{sample_id}_{idx}')
             annotation.update(self._get_3d_annotation(object))
             if self._box2d_from_box3d:
-                intrinsics = np.array(self._read_intrinsics(sample['seq_name']), dtype=np.float64).reshape(3, 3)
+                intrinsics = np.array(self._read_intrinsics(sample['seq']), dtype=np.float64).reshape(3, 3)
                 annotation.update(self._compute_box2d_from_box3d(annotation['bbox3d'], intrinsics, width, height))
             else:
                 l, t, w, h = object['2dbbox']
@@ -145,6 +146,7 @@ class CRUWImageDataset(Dataset):
         self._name_to_id = {name: idx for idx, name in enumerate(class_names)}
         self._image_dir = image_dir
         samples = []
+        self.nighttime1_seqs = [] # ['2021_1120_1616', '2021_1120_1618', '2021_1120_1619', '2021_1120_1632', '2021_1120_1634']
 
         for seq in seqs:
             seq_path = os.path.join(root_dir, seq, 'camera', image_dir)
@@ -166,7 +168,8 @@ class CRUWImageDataset(Dataset):
         sample = self.samples[idx]
         seq_name, frame_name = sample.split('-')
         datum['intrinsics'] = self._read_intrinsics(seq_name)
-        datum['file_name'] = os.path.join(self.root_dir, seq_name, 'camera', self._image_dir, '{}.png'.format(frame_name))
+        img_dir = 'left' if seq_name in self.nighttime1_seqs else self._image_dir # always use original images for night time sequences
+        datum['file_name'] = os.path.join(self.root_dir, seq_name, 'camera', img_dir, '{}.png'.format(frame_name))
         I = Image.open(datum['file_name'])
         datum['width'], datum['height'] = I.width, I.height
         datum['image_id'] = sample
@@ -188,9 +191,9 @@ def build_cruw_dataset(
     return dataset_dicts
 
 def build_cruw_image_dataset(
-    root_dir, calib_root, seq_dirs, class_names=VALID_CLASS_NAMES, img_dir='left', ignore_ratio=0.7
+    root_dir, calib_root, seq_dirs, class_names=VALID_CLASS_NAMES, img_dir='left'
 ):
-    dataset = CRUWImageDataset(root_dir, calib_root, seq_dirs, class_names, image_dir=img_dir, ignore_ratio=ignore_ratio)
+    dataset = CRUWImageDataset(root_dir, calib_root, seq_dirs, class_names, image_dir=img_dir)
     dataset_dicts = collect_dataset_dicts(dataset)
     return dataset_dicts
 
@@ -203,9 +206,9 @@ def register_cruw_metadata(dataset_name, valid_class_names=VALID_CLASS_NAMES, co
     metadata.contiguous_id_to_name = {idx: klass for idx, klass in enumerate(metadata.thing_classes)}
     metadata.name_to_contiguous_id = {name: idx for idx, name in metadata.contiguous_id_to_name.items()}
 
-    # dataset_dicts = DatasetCatalog.get(dataset_name)
-    # metadata.json_file = create_coco_format_cache(dataset_dicts, metadata, dataset_name, coco_cache_dir)
-    # LOG.info(f'COCO json file: {metadata.json_file}')
+    dataset_dicts = DatasetCatalog.get(dataset_name)
+    metadata.json_file = create_coco_format_cache(dataset_dicts, metadata, dataset_name, coco_cache_dir)
+    LOG.info(f'COCO json file: {metadata.json_file}')
 
     metadata.evaluators = ["kitti3d_evaluator"] # "coco_evaluator", 
     metadata.pred_visualizers = ["box3d_visualizer"] # "d2_visualizer",

@@ -2,14 +2,17 @@
 defaults:
   - /evaluators/kitti_3d@EVALUATORS.KITTI3D
   - override /meta_arch@_global_: dd3d
-  - override /train_datasets@DATASETS.TRAIN: kradar_train_good_v3
-  - override /test_datasets@DATASETS.TEST: kradar_test_good_v3
+  - override /train_datasets@DATASETS.TRAIN: cruw_car_bus
+  - override /test_datasets@DATASETS.TEST: cruw_car_bus
   - override /feature_extractors@FE: dla34_fpn
+
+
 
 MODEL:
   # from-coco, IODA-pretrained.
-  CKPT: weights/kradar/model_0089999.pth
-  # CKPT: /home/andy/Downloads/tmp_dd3d/model_0079999.pth
+  CKPT: /mnt/ssd3/CRUW3D/weight/model_0069999.pth
+
+
 FE:
   BACKBONE:
     NORM: FrozenBN
@@ -25,31 +28,35 @@ DD3D:
 
   FCOS3D:
     NORM: FrozenBN
+  
+  INFERENCE:
+    # to fuse the detection result with radar fushion, remove 2d nms and top k
+    DO_NMS: True
 
 INPUT:
   RESIZE:
-    # kradr images are (720, 1280)
-    MIN_SIZE_TRAIN: [624, 640, 656, 672, 688, 704, 720, 736, 752, 768, 784, 800, 816, 832]
+    # cruw images are (1080, 1440), (h, w)
+    MIN_SIZE_TRAIN: [800, 832, 864, 896, 928, 960, 992, 1024, 1056, 1088, 1120, 1152, 1184, 1216, 1248, 1280, 1312]
     MAX_SIZE_TRAIN: 10000
-    MIN_SIZE_TEST: 720
+    MIN_SIZE_TEST: 1056
     MAX_SIZE_TEST: 100000
 
 SOLVER:
-  IMS_PER_BATCH: 16
+  IMS_PER_BATCH: 1 #64 # need at least 128 GPU mem (with fp16).
   BASE_LR: 0.002
-  MAX_ITER: 100000
-  STEPS: [80000, 90000]
-  WARMUP_ITERS: 10000
+  MAX_ITER: 80000
+  STEPS: [50000, 60000]
+  WARMUP_ITERS: 16000
   MIXED_PRECISION_ENABLED: True
   CHECKPOINT_PERIOD: 10000
 
 TEST:
-  ENABLED: True # change
+  ENABLED: True
   IMS_PER_BATCH: 1
   EVAL_PERIOD: 10000
   AUG:
     ENABLED: False
-    MIN_SIZES: [656, 704, 736, 768, 816]
+    MIN_SIZES: [864, 960, 1056, 1184, 1280]
     MAX_SIZE: 100000
     FLIP: True
 
@@ -59,16 +66,12 @@ DATALOADER:
     SAMPLER: RepeatFactorTrainingSampler
     REPEAT_THRESHOLD: 0.4
 
+WANDB:
+  TAGS: [cruw-train, dla34, bn]
 
-EVAL_ONLY: False # change
+EVAL_ONLY: False
 
 VIS:
   DATALOADER_ENABLED: False
   PREDICTIONS_ENABLED: False
 
-EVAL_ON_START: False
-
-WANDB:
-  ENABLED: False
-
-NOT_REGISTER_TRAIN: True

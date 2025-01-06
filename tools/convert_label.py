@@ -215,29 +215,38 @@ def get_labels(seq_frames, ds_root, calib_relative_path):
 
 
 if __name__ == '__main__':
-    train_samples = '/home/andy/ipl/CenterPoint/configs/kradar/resources/split/train.txt'
-    test_samples = '/home/andy/ipl/CenterPoint/configs/kradar/resources/split/test.txt'
+
+    
     with open('/mnt/nas_kradar/kradar_dataset/bad_front.json', 'r') as json_file:
         exclude_seq_frame_json = json.load(json_file)
-    save_name = 'kradar_cam_aligned_v3_all.json'
-    save_root_path = '/home/andy/ipl/dd3d/dataset_root/kradar_label'
-    is_kitti_format = False # kitti format means in object coordinate frame, x is forward (L), y is down (H), z is left (W)
     kradar_root = '/home/andy/ipl/dd3d/dataset_root/kradar'
     calib_realtive_path = 'calib/camera/cam-front-undistort.json'
-    print(f'Start to preparing files in {save_root_path}')
-    # target_seq = [5, 7, 9, 10, 11, 12, 13, 15, 16, 17, 19,  22, 41]
-    target_seq = list(range(1, 59))
-    for seq_to_remove in [51, 52, 57, 58]:
-        target_seq.remove(seq_to_remove)
+    save_root_path = '/home/andy/ipl/dd3d/dataset_root/kradar_label'
 
+    # generate label from the original train test split
+    # save_name = 'kradar_cam_aligned_v3_all.json'
+    is_kitti_format = False # kitti format means in object coordinate frame, x is forward (L), y is down (H), z is left (W)
+    # target_seq = [5, 7, 9, 10, 11, 12, 13, 15, 16, 17, 19,  22, 41]
+    # target_seq = list(range(1, 59))
+    # for seq_to_remove in [51, 52, 57, 58]:
+    #     target_seq.remove(seq_to_remove)
+    # train_samples = '/home/andy/ipl/CenterPoint/configs/kradar/resources/split/train.txt'
+    # test_samples = '/home/andy/ipl/CenterPoint/configs/kradar/resources/split/test.txt'
+    # train_seq_frames = get_target_seq_frames(train_samples, target_seq, exclude_seq_frame_json)
+    # test_seq_frames = get_target_seq_frames(test_samples, target_seq, exclude_seq_frame_json)
+
+    print(f'Start to preparing files in {save_root_path}')
     distance_threshold = 80 # filter out instances larger than distance (meter)
-    train_seq_frames = get_target_seq_frames(train_samples, target_seq, exclude_seq_frame_json)
+    with open('/home/andy/ipl/CamRad-Self-Supervision/seq_frames_weather1.json', 'r')  as f:
+        seq_frames = json.load(f)
+
+    save_name = 'kradar_resampled_weather1.json'
+
     print('Start preparing train label.')
-    train_labels = get_labels(train_seq_frames, kradar_root, calib_realtive_path)
+    train_labels = get_labels(seq_frames['train'], kradar_root, calib_realtive_path)
     print('Finish train label generation.')
     print('Start preparing test label.')
-    test_seq_frames = get_target_seq_frames(test_samples, target_seq, exclude_seq_frame_json)
-    test_labels = get_labels(test_seq_frames, kradar_root, calib_realtive_path)
+    test_labels = get_labels(seq_frames['test'], kradar_root, calib_realtive_path)
     print('Finish test label generation.')
     print(f'Writing to {save_name}')
     output_labels = {} # {split_type: [{obj_type, obj_id, objs: []}]}

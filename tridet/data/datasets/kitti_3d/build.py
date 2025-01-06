@@ -313,6 +313,7 @@ def register_kitti_3d_metadata(dataset_name, valid_class_names=VALID_CLASS_NAMES
     metadata.json_file = create_coco_format_cache(dataset_dicts, metadata, dataset_name, coco_cache_dir)
     LOG.info(f'COCO json file: {metadata.json_file}')
 
-    metadata.evaluators = ("coco_evaluator", "kitti3d_evaluator")
+    # metadata.evaluators = ("coco_evaluator", "kitti3d_evaluator")
+    metadata.evaluators = ("kitti3d_evaluator", )
     metadata.pred_visualizers = ("d2_visualizer", "box3d_visualizer")
     metadata.loader_visualizers = ("d2_visualizer", "box3d_visualizer")

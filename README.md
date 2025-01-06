@@ -1,17 +1,8 @@
-<a href="https://www.tri.global/" target="_blank">
- <img align="right" src="/media/figs/tri-logo.png" width="25%"/>
-</a>
 
 ## DD3D: "Is Pseudo-Lidar needed for Monocular 3D Object detection?"
 
 [Install](#installation) // [Datasets](#datasets) // [Experiments](#experiments) //  [Models](#models) // [License](#license) // [Reference](#reference)
 
-
-<a href="https://youtu.be/rXBoUpq9CVQ" target="_blank">
-<img width="100%" src="/media/figs/demo_dd3d_kitti_val_short.gif"/>
-</a>
-
-[Full video](https://youtu.be/rXBoUpq9CVQ)
 
 Official [PyTorch](https://pytorch.org/) implementation of _DD3D_: [**Is Pseudo-Lidar needed for Monocular 3D Object detection? (ICCV 2021)**](https://arxiv.org/abs/2108.06417),
 *Dennis Park<sup>\*</sup>, Rares Ambrus<sup>\*</sup>, Vitor Guizilini, Jie Li, and Adrien Gaidon*.
@@ -52,6 +43,19 @@ You should also enable these features in configuration, such as [`WANDB.ENABLED`
 
 ### Datasets
 By default, datasets are assumed to be downloaded in `/data/datasets/<dataset-name>` (can be a symbolic link). The dataset root is configurable by [`DATASET_ROOT`](https://github.com/TRI-ML/dd3d/blob/main/configs/defaults.yaml#L35).
+
+
+#### Adding your dataset
+0. Prepare your dataset annotation. 
+1. Write your dataset Python scripts under tridet/data/datasets/\<your dataset name\> and register your dataset in tridet/data/datasets/__init__.py
+2. Create your training and testing dataset config in configs/train_datasets and configs/test_datasets
+3. Create your experiment configs in configs/experiments
+
+Please check cruw dataset as a customized dataset exaple.
+
+
+
+
 
 #### KITTI
 
@@ -132,6 +136,8 @@ The nuScenes dataset (v1.0) can be downloaded from the [nuScenes website](https:
         │   ├── category.json
         │   ├── ...
 ```
+
+
 
 ### Pre-trained DD3D models
 The DD3D models pre-trained on dense depth estimation using DDAD15M can be downloaded here:
@@ -217,12 +223,6 @@ The source code is released under the [MIT license](LICENSE.md). We note that so
 - [detectron2](https://github.com/facebookresearch/detectron2)
 - [AdelaiDet](https://github.com/aim-uofa/AdelaiDet)
 
-## Reference
-```
-@inproceedings{park2021dd3d,
-  author = {Dennis Park and Rares Ambrus and Vitor Guizilini and Jie Li and Adrien Gaidon},
-  title = {Is Pseudo-Lidar needed for Monocular 3D Object detection?},
-  booktitle = {IEEE/CVF International Conference on Computer Vision (ICCV)},
-  primaryClass = {cs.CV},
-  year = {2021},
-}
+## Files
+
+kradar_postprocessing.py: combine and transfrom bbox3d.json to viz format used in IPL labeling tool

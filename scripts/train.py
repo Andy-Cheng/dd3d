@@ -34,6 +34,8 @@ from tridet.utils.visualization import mosaic, save_vis
 from tridet.utils.wandb import flatten_dict, log_nested_dict
 from tridet.visualizers import get_dataloader_visualizer, get_predictions_visualizer
 from torch.utils.tensorboard import SummaryWriter
+from ptflops import get_model_complexity_info
+
 
 
 LOG = logging.getLogger('tridet')
@@ -42,12 +44,38 @@ LOG = logging.getLogger('tridet')
 @hydra.main(config_path="../configs/", config_name="defaults")
 def main(cfg):
     setup(cfg)
+    model = build_model(cfg)
+    if cfg.TEST.CAL_MODEL_PERFORMANCE:
+        model.cal_performance = True
+
+        macs, params = get_model_complexity_info(model, (3, 384, 1280), as_strings=True, backend='pytorch', print_per_layer_stat=True, verbose=True)
+        print('{:<30}  {:<8}'.format('Computational complexity: ', macs)) # 163
+        print('{:<30}  {:<8}'.format('Number of parameters: ', params)) # 80.32
+        # FPN: (96, 320), (6, 20)
+
+
+        macs, params = get_model_complexity_info(model, (3, 384//2, 1280), as_strings=True, backend='pytorch', print_per_layer_stat=True, verbose=True)
+        print('{:<30}  {:<8}'.format('Computational complexity: ', macs)) # 81.5 GMac
+        print('{:<30}  {:<8}'.format('Number of parameters: ', params))
+
+        macs, params = get_model_complexity_info(model, (3, 384, 1280//2), as_strings=True, backend='pytorch', print_per_layer_stat=True, verbose=True)
+        print('{:<30}  {:<8}'.format('Computational complexity: ', macs)) # 163.0
+        print('{:<30}  {:<8}'.format('Number of parameters: ', params)) # 80.32 
+
+        macs, params = get_model_complexity_info(model, (3, 384//2, 1280//2), as_strings=True, backend='pytorch', print_per_layer_stat=True, verbose=True)
+        print('{:<30}  {:<8}'.format('Computational complexity: ', macs)) # 40.76
+        print('{:<30}  {:<8}'.format('Number of parameters: ', params)) # 80.32
+
+        # macs, params = get_model_complexity_info(model, (3, 384, 1280), as_strings=True, backend='aten', print_per_layer_stat=True, verbose=True)
+        # print('{:<30}  {:<8}'.format('Computational complexity: ', macs))
+        # print('{:<30}  {:<8}'.format('Number of parameters: ', params))
+        model.cal_performance = False
+        return
     dataset_names = register_datasets(cfg)
     if cfg.ONLY_REGISTER_DATASETS:
         return {}, cfg
     LOG.info(f"Registered {len(dataset_names)} datasets:" + '\n\t' + '\n\t'.join(dataset_names))
 
-    model = build_model(cfg)
 
     checkpoint_file = cfg.MODEL.CKPT
     if checkpoint_file:
@@ -206,6 +234,7 @@ def do_test(cfg, model, is_last=False, use_tta=False):
     if not cfg.TEST.ENABLED:
         LOG.warning("Test is disabled.")
         return {}
+
 
     dataset_names = [cfg.DATASETS.TEST.NAME]  # NOTE: only support single test dataset for now.
 

@@ -47,14 +47,14 @@ def encode_box3d_quat(quats, dims, locs):
 
 
 combine = True
-viz = False
+viz = True
 
 tr_LR_tvec = [2.54, -0.3, -0.7]
-saved_picke_name = 'kradar_dla34_3dnms_all_seq.pkl'
+saved_picke_name = 'kradar_dla34_3dnms_weather1.pkl'
 if combine:
-    with open('/home/andy/ipl/dd3d/outputs/2023-10-30/13-51-22/inference/final/kradar_test_good_v3/bbox3d_predictions.json') as f:
+    with open('outputs/2024-02-14/23-05-14/inference/final/kradar_test_good_v3/bbox3d_predictions.json') as f:
         train_result = json.load(f)
-    with open('/home/andy/ipl/dd3d/outputs/2023-10-30/12-51-50/inference/final/kradar_test_good_v3/bbox3d_predictions.json') as f:
+    with open('outputs/2024-02-14/21-47-09/inference/final/kradar_test_good_v3/bbox3d_predictions.json') as f:
         test_result = json.load(f)
 
     result = train_result + test_result
@@ -84,9 +84,11 @@ if combine:
         z += 0.7
         x -= 0.1
         new_x, new_y, new_z = z-tr_LR_tvec[0], -x-tr_LR_tvec[1], -y-tr_LR_tvec[2]
-        if new_y < -30 or new_y > 30:
-            print(new_y)
-        if new_x < 0 or new_x > 80 or new_y < -30 or new_y > 30 or new_z < -2 or new_z > 7.6:
+        # if new_y < -30 or new_y > 30:
+        #     print(new_y)
+        # if new_x < 0 or new_x > 80 or new_y < -30 or new_y > 30 or new_z < -2 or new_z > 7.6:
+        #     continue
+        if new_x < 0 or new_x > 80 or new_y < -15 or new_y > 15 or new_z < -2 or new_z > 7.6:
             continue
         box['box3d'] = [new_x, new_y, new_z, L, W, H, float(r+np.pi/2)]
         box['quat'] = quat
@@ -101,7 +103,7 @@ if combine:
             objects = []
             for i, obj in enumerate(objs):
                 # each row: [quat with real part first, x, y, z, length, width, height, score, original_index]
-                bbox3d = [*obj['box3d_cam'][:7], obj['box3d_cam'][8], obj['box3d_cam'][7], obj['box3d_cam'][9]]
+                bbox3d = [*obj['box3d_cam'][:7], obj['box3d_cam'][8], obj['box3d_cam'][7], obj['box3d_cam'][9]] # ROI1 in Cenrad
                 objects.append([*bbox3d, obj['score_3d'], float(i)])
             objects = torch.tensor(objects)
             pick_indexes = NMS3D_cruw(objects, iou_threshold).flatten().to(torch.int).tolist()
@@ -135,7 +137,7 @@ if combine:
 
 if viz:
     root = '/mnt/ssd3/kradar_cam_result'
-    checkpoint_name = 'dd3d_dla34_3dnms'
+    checkpoint_name = 'dd3d_dla34_3dnms_weather1'
     dataset_split = 'all'
 
     with open(saved_picke_name, 'rb') as f:
@@ -167,5 +169,5 @@ if viz:
         
     save_pred_dir = os.path.join(root, f"{checkpoint_name}")
     os.makedirs(save_pred_dir, exist_ok=True)
-    with open(os.path.join(save_pred_dir, f"{dataset_split}_prediction_viz_format_all_seq.json"), "w") as f:
+    with open(os.path.join(save_pred_dir, f"{dataset_split}_prediction_viz_format.json"), "w") as f:
         json.dump(pred_viz_format, f, indent=2)

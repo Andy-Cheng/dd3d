@@ -15,7 +15,7 @@ from tridet.structures.image_list import ImageList
 from tridet.utils.tensor2d import compute_features_locations as compute_locations_per_level
 from tridet.modeling.backbone.omni_scripts.backbone_with_fpn import build_feature_extractor_all_fuse
 from tridet.structures.pose import Pose
-
+import time
 
 @META_ARCH_REGISTRY.register()
 class DD3D(nn.Module):
@@ -57,6 +57,7 @@ class DD3D(nn.Module):
         # nuScenes inference aggregates detections over all 6 cameras.
         self.nusc_sample_aggregate_in_inference = cfg.DD3D.INFERENCE.NUSC_SAMPLE_AGGREGATE
         self.num_classes = cfg.DD3D.NUM_CLASSES
+        self.cal_performance = False
 
         self.register_buffer("pixel_mean", torch.Tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1))
         self.register_buffer("pixel_std", torch.Tensor(cfg.MODEL.PIXEL_STD).view(-1, 1, 1))
@@ -69,38 +70,51 @@ class DD3D(nn.Module):
         return (x - self.pixel_mean) / self.pixel_std
 
     def forward(self, batched_inputs):
-        images = [x["image"].to(self.device) for x in batched_inputs]
-        images = [self.preprocess_image(x) for x in images]
+        start_time = time.time()  # Start time
+        if not self.cal_performance:
+            images = [x["image"].to(self.device) for x in batched_inputs]
+            images = [self.preprocess_image(x) for x in images]
 
-        if 'intrinsics' in batched_inputs[0]:
-            intrinsics = [x['intrinsics'].to(self.device) for x in batched_inputs]
+            if 'intrinsics' in batched_inputs[0]:
+                intrinsics = [x['intrinsics'].to(self.device) for x in batched_inputs]
+            else:
+                intrinsics = None
+            images = ImageList.from_tensors(images, self.backbone.size_divisibility, intrinsics=intrinsics)
+
+            gt_dense_depth = None
+            if 'depth' in batched_inputs[0]:
+                gt_dense_depth = [x["depth"].to(self.device) for x in batched_inputs]
+                gt_dense_depth = ImageList.from_tensors(
+                    gt_dense_depth, self.backbone.size_divisibility, intrinsics=intrinsics
+                )
+            
+            features = self.backbone(images.tensor)
         else:
-            intrinsics = None
-        images = ImageList.from_tensors(images, self.backbone.size_divisibility, intrinsics=intrinsics)
-
-        gt_dense_depth = None
-        if 'depth' in batched_inputs[0]:
-            gt_dense_depth = [x["depth"].to(self.device) for x in batched_inputs]
-            gt_dense_depth = ImageList.from_tensors(
-                gt_dense_depth, self.backbone.size_divisibility, intrinsics=intrinsics
-            )
-
-        features = self.backbone(images.tensor)
+            features = self.backbone(batched_inputs)
+            self.training = False
         features = [features[f] for f in self.in_features]
 
-        if "instances" in batched_inputs[0]:
-            gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
-        else:
+        if self.cal_performance:
             gt_instances = None
+        else:
+            if "instances" in batched_inputs[0]:
+                gt_instances = [x["instances"].to(self.device) for x in batched_inputs]
+            else:
+                gt_instances = None
 
         locations = self.compute_locations(features)
         logits, box2d_reg, centerness, _ = self.fcos2d_head(features)
         if not self.only_box2d:
             box3d_quat, box3d_ctr, box3d_depth, box3d_size, box3d_conf, dense_depth = self.fcos3d_head(features)
-        inv_intrinsics = images.intrinsics.inverse() if images.intrinsics is not None else None
+            
+        if self.cal_performance:
+            inv_intrinsics = torch.tensor(       [[ 0.0014,  0.0000, -0.8448],
+            [ 0.0000,  0.0014, -0.2396],
+            [ 0.0000,  0.0000,  1.0000]]).to(self.device)
+        else:
+            inv_intrinsics = images.intrinsics.inverse() if images.intrinsics is not None else None
 
         if self.training:
-            assert gt_instances is not None
             feature_shapes = [x.shape[-2:] for x in features]
             training_targets = self.prepare_targets(locations, gt_instances, feature_shapes)
             if gt_dense_depth is not None:
@@ -118,8 +132,9 @@ class DD3D(nn.Module):
                 losses.update(fcos3d_loss)
             return losses
         else:
+            sizes = [tuple(batched_inputs.shape[-2:])] if self.cal_performance else images.image_sizes
             pred_instances, fcos2d_info = self.fcos2d_inference(
-                logits, box2d_reg, centerness, locations, images.image_sizes
+                logits, box2d_reg, centerness, locations, sizes
             )
             if not self.only_box2d:
                 # This adds 'pred_boxes3d' and 'scores_3d' to Instances in 'pred_instances' in place.
@@ -136,6 +151,10 @@ class DD3D(nn.Module):
             # Transpose to "image-first", i.e. (B, L)
             pred_instances = list(zip(*pred_instances))
             pred_instances = [Instances.cat(instances) for instances in pred_instances]
+            if self.cal_performance:
+                self.training = True
+                return torch.zeros(1).to(self.device)
+
 
             # 2D NMS and pick top-K.
             if self.do_nms:
@@ -169,7 +188,9 @@ class DD3D(nn.Module):
                     processed_results.append({"instances": r})
             else:
                 processed_results = [{"instances": x} for x in pred_instances]
-
+            end_time = time.time()  # End time
+            elapsed_time = end_time - start_time
+            print(f"Forward method execution time: {elapsed_time:.4f} seconds")
             return processed_results
 
     def compute_locations(self, features):

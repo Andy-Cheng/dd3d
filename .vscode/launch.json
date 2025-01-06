@@ -54,7 +54,7 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
-                "+experiments=dd3d_dla34_kradar",
+                "+experiments=dd3d_dla34_kradar_da_normal",
                 "EVAL_ONLY=True"
 
             ]
@@ -81,6 +81,20 @@
             "justMyCode": false,
             "args": [
                 "+experiments=cruw_carbus",
+                "EVAL_ONLY=True"
+
+            ]
+        },
+
+        {
+            "name": "KITTI test",
+            "type": "python",
+            "program": "./scripts/train.py",
+            "request": "launch",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "+experiments=dd3d_kitti_v99",
                 "EVAL_ONLY=True"
 
             ]

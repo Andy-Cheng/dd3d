@@ -8,7 +8,8 @@ defaults:
 
 MODEL:
   # from-coco, IODA-pretrained.
-  CKPT: /home/andy/ipl/dd3d/dd3d_v99_15M_depth_kitti_3dobj.pth
+  CKPT: /mnt/disk1/model_weights/v2-99-kitti-final.pth
+  # depth_pretrained_v99-3jlw0p36-20210423_010520-model_final-remapped.pth
 
 FE:
   BACKBONE:
@@ -44,13 +45,14 @@ SOLVER:
   CHECKPOINT_PERIOD: 2000
 
 TEST:
-  IMS_PER_BATCH: 16
+  IMS_PER_BATCH: 1
   EVAL_PERIOD: 2000
   AUG:
     ENABLED: False
     MIN_SIZES: [320, 384, 448, 512, 576]
     MAX_SIZE: 100000
     FLIP: True
+  CAL_MODEL_PERFORMANCE: False
 
 DATALOADER:
   TRAIN:
@@ -63,3 +65,9 @@ EVAL_ONLY: True
 
 WANDB:
   TAGS: [kitti-val, v2-99, bn]
+
+VIS:
+  PREDICTIONS_ENABLED: False
+
+
+  # input size: (3, 384, 1272)

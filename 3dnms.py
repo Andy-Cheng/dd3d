@@ -8,6 +8,7 @@ from pytorch3d.transforms.rotation_conversions import quaternion_to_matrix
 from collections import defaultdict
 import json
 from detectron2.layers import batched_nms
+import pickle
 
 def check_last_line_break(predict_txt):
     f = open(predict_txt, 'rb+')
@@ -255,6 +256,26 @@ def nms2d_filter_cruw(pred_path, prediction_format):
         json.dump(predictions, out_file, indent=2)
 
 
+def nms_filter_smoke(pred_path):
+    with open(pred_path, 'rb') as f:
+        predictions = pickle.load(f)
+    for image_id, prediction in predictions.items():
+        objs = prediction.tolist()
+        # each row: [quat with real part first, x, y, z, length, width, height, score, original_index]
+        objects = []
+        for i, obj in enumerate(objs):
+            bbox3d = [*obj[11:15], *obj[8:11], obj[5], obj[7], obj[6], obj[18]]
+            objects.append([*bbox3d, float(i)])
+        objects = torch.tensor(objects) 
+        pick_indexes = NMS3D_cruw(objects, iou_threshold).flatten().to(torch.int).tolist()
+        predictions[image_id] = torch.tensor([objs[pick_index] for pick_index in pick_indexes])
+    dir, file_name = os.path.split(pred_path)
+    file_name = file_name.split('.')[0]
+    save_file_name = f'{file_name}_3dnms_{iou_threshold}.pkl'
+    save_path = os.path.join(dir, save_file_name)
+    with open(save_path, 'wb') as out_file:
+        pickle.dump(predictions, out_file)
+
 if __name__ == '__main__':
     iou_threshold = 0.
     iou2d_threshold = 0.75
@@ -263,12 +284,20 @@ if __name__ == '__main__':
     # save_dir = '/data/test_smaple_apollo/3dnms_filtered'
     # nms_filter(prediction_dir, save_dir)
 
+    enable_filter = True
+    # SMOKE CRUW3D
+    prediction_path = f'/home/andy/ipl/SMOKE/logs/cruw3d/inference/cruw_test/predictions_train.pkl'
+    nms_filter_smoke(prediction_path)
+
+
     # CRUW format
 
+    '''
     prediction_path = f'outputs/2023-10-25/22-39-08/inference/final/unimonocam/bbox3d_predictions.json' # change
     prediction_format = 'raw' # raw # change
     enable_filter = True # change
     nms_filter_cruw(prediction_path, prediction_format)
+    '''
     # nms2d_filter_cruw(prediction_path, prediction_format)
 
     # for i in range(1, 4):

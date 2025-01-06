@@ -11,8 +11,8 @@ KRADAR_ROOT = 'kradar'
 KRADAR_LABEL_ROOT = 'kradar_label'
 
 DATASET_DICTS_BUILDER = {
-    'kradar_train_good_v3': (build_kradar_dataset, dict(label_path='kradar_cam_aligned_v3_all.json', split_type='train')),
-    'kradar_test_good_v3': (build_kradar_dataset, dict(label_path='kradar_cam_aligned_v3_all.json', split_type='train')),
+    'kradar_train_good_v3': (build_kradar_dataset, dict(label_path='kradar_resampled_weather1.json', split_type='train')),
+    'kradar_test_good_v3': (build_kradar_dataset, dict(label_path='kradar_resampled_weather1.json', split_type='train')),
 }
 
 METADATA_BUILDER = {name: (register_kradar_metadata, {}) for name in DATASET_DICTS_BUILDER.keys()}

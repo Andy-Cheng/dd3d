@@ -34,7 +34,7 @@ COLORMAP = OrderedDict({
 
 def main():
     metadata = Metadata()
-    metadata.thing_classes = ("Car", "Pedestrian", "Cyclist", "Van", "Truck", "Bus")
+    metadata.thing_classes = ("Car", "Cyclist", "Pedestrian")
     metadata.thing_colors = [COLORMAP[klass] for klass in metadata.thing_classes]
     metadata.id_to_name = {idx: klass for idx, klass in enumerate(metadata.thing_classes)}
     metadata.contiguous_id_to_name = {idx: klass for idx, klass in enumerate(metadata.thing_classes)}
@@ -179,8 +179,7 @@ def viz(pred_thresholds, pred, gt, metadata, start_frame=1260):
                 if not os.path.exists(seq_root_path):
                     os.makedirs(seq_root_path)
                 if not frame_name in pred[seq_name]:
-                    continue
-                    # pred_frame = []
+                    pred_frame = []
                 else:
                     pred_frame = pred[seq_name][frame_name]
                     # # debug
@@ -213,7 +212,7 @@ if __name__ == '__main__':
     Start_Frame = 0 # 1260
     prediction_thresholds = [0.0] # , 0.4, 0.3, 0.2, 0.1, 0.
     save_video = False
-    cruw_root = '/mnt/nas_cruw/CRUW_2022'
+    cruw_root = '/mnt/disk2/CRUW22_IMG'
     calib_root = '/mnt/nas_cruw/cruw_calibs/'
     viz_gt_2dbbox = False
     
@@ -221,6 +220,6 @@ if __name__ == '__main__':
     gt_path = 'Day_Night_all_viz_format.pkl'
     # gt_path = None
     pred_type = 'aggregate' # raw or 'aggregate'
-    prediction_file_paths = ['/home/andy/ipl/SMOKE/logs/cruw3d_finetune_1088/inference/cruw_test/predictions.json']
+    prediction_file_paths = ['/mnt/disk1/unimonocam/fs_10_1441/bbox3d_predictions_3dnms_0.0.json']
     save_root_path = os.path.split(prediction_file_paths[0])[0]
     main()
